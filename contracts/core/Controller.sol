@@ -20,6 +20,7 @@ import {WhitelistInterface} from "../interfaces/WhitelistInterface.sol";
 import {MarginPoolInterface} from "../interfaces/MarginPoolInterface.sol";
 import {CalleeInterface} from "../interfaces/CalleeInterface.sol";
 import {forwards} from "../libs/ForwardLib.sol";
+import {IController} from "../interfaces/controllerProxy.sol";
 
 /**
  * Controller Error Codes
@@ -64,7 +65,7 @@ import {forwards} from "../libs/ForwardLib.sol";
  * @author Opyn Team
  * @notice Contract that controls the Gamma Protocol and the interaction of all sub contracts
  */
-contract Controller is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
+contract Controller is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe, IController {
     using MarginVault for MarginVault.Vault;
     using SafeMath for uint256;
 
@@ -505,8 +506,18 @@ contract Controller is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgrade
      * @param _amount amount of the oToken to calculate the payout for, always represented in 1e8
      * @return amount of collateral to pay out
      */
-    function getPayout(address _otoken, uint256 _amount) public view returns (uint256) {
+    function _getPayout(address _otoken, uint256 _amount) internal view returns (uint256) {
         return calculator.getExpiredPayoutRate(_otoken).mul(_amount).div(10**BASE);
+    }
+
+    /**
+     * @notice get an oToken's payout/cash value after expiry, in the collateral asset
+     * @param _otoken oToken address
+     * @param _amount amount of the oToken to calculate the payout for, always represented in 1e8
+     * @return amount of collateral to pay out
+     */
+    function getPayout(address _otoken, uint256 _amount) external view returns (uint256) {
+        return _getPayout(_otoken, _amount);
     }
 
     /**
@@ -711,7 +722,11 @@ contract Controller is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgrade
      * @param _args DepositArgs structure
      *
      **/
-    function _mintForward(Actions.depositForwardArgs memory _args) public {
+    function _mintForward(Actions.depositForwardArgs memory _args)
+        internal
+        notPartiallyPaused
+        onlyAuthorized(msg.sender, _args.owner)
+    {
         forwards._mintForward(
             _args,
             whitelist,
@@ -728,7 +743,11 @@ contract Controller is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgrade
      * @dev only the account owner or operator can burn an oToken, cannot be called when system is partiallyPaused or fullyPaused
      * @param _args MintArgs structure
      */
-    function _burnForward(Actions.BurnForwardArgs memory _args) public {
+    function _burnForward(Actions.BurnForwardArgs memory _args)
+        internal
+        notPartiallyPaused
+        onlyAuthorized(msg.sender, _args.owner)
+    {
         forwards._burnForward(
             _args,
             whitelist,
@@ -828,7 +847,7 @@ contract Controller is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgrade
 
         require(_canSettleAssets(underlying, strike, collateral, expiry), "C29");
 
-        uint256 payout = getPayout(_args.otoken, _args.amount);
+        uint256 payout = _getPayout(_args.otoken, _args.amount);
 
         otoken.burnOtoken(msg.sender, _args.amount);
 
