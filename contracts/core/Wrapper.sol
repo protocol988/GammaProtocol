@@ -41,10 +41,71 @@ contract Wrapper is ReentrancyGuard {
         controller = controller_address;
     }
 
+    function mintForwardQuick(
+        address owner,
+        address oTokenLong,
+        address oTokenShort,
+        address collateralAsset,
+        uint256 collateralAmount,
+        uint256 oTokenAmount
+    ) public nonReentrant returns (address[] memory) {
+        /////////////////////////////////
+        //OtokenInterface otoken = OtokenInterface(oTokenShort);
+
+        uint256 _amount = oTokenAmount;
+
+        // name the fShare's
+        // TODO - figure out otoken integration
+        /*
+        string memory name_long = string(
+            abi.encodePacked(otoken.underlyingAsset(), "LONG-F", otoken.expiryTimestamp(), otoken.strikePrice())
+        );
+        string memory name_short = string(
+            abi.encodePacked(otoken.underlyingAsset(), "SHORT-F", otoken.expiryTimestamp(), otoken.strikePrice())
+        );
+        */
+
+        string memory name_long = "LFTOKEN";
+        string memory name_short = "SFTOKEN";
+
+        // initial supply is the amount minted * 1000
+        uint256 amount = _amount * 1000;
+        FShare fShareLong = new FShare(name_long, name_long, amount, true, collateralAsset);
+        FShare fShareShort = new FShare(name_short, name_short, amount, false, collateralAsset);
+
+        // make the wrapper contract an approved spender of the all the fShares
+        fShareLong.approve(address(this), amount);
+        fShareShort.approve(address(this), amount);
+
+        // store the amount minted
+        amountMinted[address(fShareLong)] = _amount;
+        amountMinted[address(fShareShort)] = _amount;
+
+        // set the fShare as NOT expired
+        fShareExpired[address(fShareLong)] = false;
+        fShareExpired[address(fShareShort)] = false;
+
+        // store the fShare addresses owned by the msg.sender
+        longFShareAddressesOwned[msg.sender].push(address(fShareLong));
+        ShortFShareAddressesOwned[msg.sender].push(address(fShareShort));
+
+        // transfer the fShares to the msg.sender
+        fShareLong.transfer(msg.sender, _amount);
+        fShareShort.transfer(msg.sender, _amount);
+
+        // return the fShare addresses
+        address[] memory fShareAddresses = new address[](2);
+        fShareAddresses[0] = address(fShareLong);
+        fShareAddresses[1] = address(fShareShort);
+        return fShareAddresses;
+    }
+
     /**
      * @notice mints a forward, and returns the fShares to the minter
      */
     function mintForward(Actions.ActionArgs[] memory _actions) public nonReentrant returns (address[] memory) {
+        // TODO - reintroduce real logic!
+        /*
         // verify that the Actions include OpenVault, DepositCollateral, MintForward in that order
         require(_actions.length == 3, "Wrapper: invalid actions length");
         require(_actions[0].actionType == Actions.ActionType.OpenVault, "Wrapper: first action must be OpenVault");
@@ -56,6 +117,7 @@ contract Wrapper is ReentrancyGuard {
 
         // run the actions
         IController(controller).operate(_actions);
+        */
 
         // Create a new fShare token, and transfer it to the msg.sender
         // create instance of short otoken from actions
@@ -124,7 +186,10 @@ contract Wrapper is ReentrancyGuard {
             "Wrapper: SettleVault must be called with the associated address of the wrapper"
         );
 
+        // TODO - reintroduce checks, failed compilation with error:
+        // TypeError: Member "contains" not found or not visible after argument-dependent lookup in address[] storage ref.
         // verify that the fShare addresses are owned by the msg.sender
+        /*
         require(
             longFShareAddressesOwned[msg.sender].contains(longFShare),
             "Wrapper: long fShare address not owned by msg.sender"
@@ -133,15 +198,20 @@ contract Wrapper is ReentrancyGuard {
             ShortFShareAddressesOwned[msg.sender].contains(shortFShare),
             "Wrapper: short fShare address not owned by msg.sender"
         );
+        */
 
         // verify that the fShares hold the oToken
         IFShare longFShareInstance = IFShare(longFShare);
         IFShare shortFShareInstance = IFShare(shortFShare);
+        // TODO - reintroduce checks, failed compilation with error:
+        // TypeError: Member "getOtoken" not found or not visible after argument-dependent lookup in contract IFShare.
+        /*
         require(longFShareInstance.getOtoken() == _actions[0].asset, "Wrapper: long fShare does not hold the oToken");
         require(
             shortFShareInstance.getOtoken() == _actions[0].otoken,
             "Wrapper: short fShare does not hold the oToken"
         );
+        */
 
         IController contrl = IController(controller);
         // run the actions
@@ -149,7 +219,15 @@ contract Wrapper is ReentrancyGuard {
 
         // fetch the long and short oToken addresses
         OtokenInterface longOtoken = OtokenInterface(_actions[0].asset);
-        OtokenInterface shortOtoken = OtokenInterface(_actions[0].otoken);
+        // TODO - verify this fix was correct
+        //OtokenInterface shortOtoken = OtokenInterface(_actions[0].otoken);
+        OtokenInterface shortOtoken = OtokenInterface(_actions[0].shortAsset);
+
+        // get the payout from the controller, store it
+        payout[address(longFShare)] = contrl.getPayout(address(longOtoken), _actions[0].amount);
+        payout[address(shortFShare)] = contrl.getPayout(address(shortOtoken), _actions[0].amount);
+
+        // set the fShare as expired
 
         // get the payout from the controller, store it
         payout[address(longFShare)] = contrl.getPayout(address(longOtoken), _actions[0].amount);
@@ -175,6 +253,10 @@ contract Wrapper is ReentrancyGuard {
         // get the fShare instance
         IFShare fShare = IFShare(fTokenAddress);
 
+        //TODO - address this error
+        //TypeError: Member "getCollateral" not found or not visible after argument-dependent lookup in contract IFShare.
+
+        /*
         if (fShare.isLong()) {
             // fetch the payout
             uint256 payoutAmount = payout[fTokenAddress];
@@ -202,6 +284,7 @@ contract Wrapper is ReentrancyGuard {
             // transfer the collateral to the msg.sender, in proportion to the payout share
             collateral.transfer(msg.sender, share.mul(price).div(1e8));
         }
+        */
     }
 
     // event to emit whenever ether is received

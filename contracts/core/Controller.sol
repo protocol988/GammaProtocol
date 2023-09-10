@@ -430,7 +430,7 @@ contract Controller is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgrade
      * @dev can only be called when the system is not fully paused
      * @param _actions array of actions arguments
      */
-    function operate(Actions.ActionArgs[] memory _actions) external nonReentrant notFullyPaused {
+    function operate(Actions.ActionArgs[] memory _actions) external override nonReentrant notFullyPaused {
         (bool vaultUpdated, address vaultOwner, uint256 vaultId) = _runActions(_actions);
         if (vaultUpdated) {
             _verifyFinalState(vaultOwner, vaultId);
@@ -516,7 +516,7 @@ contract Controller is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgrade
      * @param _amount amount of the oToken to calculate the payout for, always represented in 1e8
      * @return amount of collateral to pay out
      */
-    function getPayout(address _otoken, uint256 _amount) external view returns (uint256) {
+    function getPayout(address _otoken, uint256 _amount) external view override returns (uint256) {
         return _getPayout(_otoken, _amount);
     }
 

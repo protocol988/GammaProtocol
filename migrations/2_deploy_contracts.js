@@ -12,6 +12,9 @@ const AddressBook = artifacts.require('AddressBook')
 const Controller = artifacts.require('Controller')
 const MockERC20 = artifacts.require('MockERC20.sol')
 
+const Wrapper = artifacts.require('Wrapper.sol')
+
+
 module.exports = async function (deployer, network, accounts) {
   const [deployerAddress] = accounts
 
@@ -69,4 +72,5 @@ module.exports = async function (deployer, network, accounts) {
   await deployer.deploy(MockERC20, 'USDC', 'USDC', usdcDecimals, { from: deployerAddress })
   await deployer.deploy(MockERC20, 'WETH', 'WETH', wethDecimals, { from: deployerAddress })
 
+  await deployer.deploy(Wrapper, controller.address, { from: deployerAddress })
 }

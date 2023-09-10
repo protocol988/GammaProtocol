@@ -36,23 +36,23 @@ contract FShare is IERC20, IFShare {
         emit Transfer(address(0), msg.sender, initialSupply);
     }
 
-    function oToken() external view returns (address) {
+    function oToken() external view override returns (address) {
         return _Otoken;
     }
 
-    function name() external view returns (string memory) {
+    function name() external view override returns (string memory) {
         return _name;
     }
 
-    function symbol() external view returns (string memory) {
+    function symbol() external view override returns (string memory) {
         return _symbol;
     }
 
-    function decimals() external pure returns (uint8) {
+    function decimals() external pure override returns (uint8) {
         return 18; // standard for ERC-20
     }
 
-    function isLong() external view returns (bool) {
+    function isLong() external view override returns (bool) {
         return _isLong;
     }
 
