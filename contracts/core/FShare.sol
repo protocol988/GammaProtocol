@@ -1,12 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.0;
 
+import {IFShare} from "../interfaces/FShareInterface.sol";
 import {IERC20} from "../packages/oz/IERC20.sol";
 
-contract FShare is IERC20 {
+/**
+ interface for FShare
+*/
+
+contract FShare is IERC20, IFShare {
     string private _name;
     string private _symbol;
     uint256 private _totalSupply;
+
+    bool public _isLong;
+
+    address _Otoken;
 
     mapping(address => uint256) private _balances;
     mapping(address => mapping(address => uint256)) private _allowances;
@@ -14,13 +23,21 @@ contract FShare is IERC20 {
     constructor(
         string memory name,
         string memory symbol,
-        uint256 initialSupply
-    ) {
+        uint256 initialSupply,
+        bool isLong,
+        address Otoken
+    ) public {
         _name = name;
         _symbol = symbol;
         _totalSupply = initialSupply;
         _balances[msg.sender] = initialSupply;
+        _isLong = isLong;
+        _Otoken = Otoken;
         emit Transfer(address(0), msg.sender, initialSupply);
+    }
+
+    function oToken() external view returns (address) {
+        return _Otoken;
     }
 
     function name() external view returns (string memory) {
@@ -33,6 +50,10 @@ contract FShare is IERC20 {
 
     function decimals() external pure returns (uint8) {
         return 18; // standard for ERC-20
+    }
+
+    function isLong() external view returns (bool) {
+        return _isLong;
     }
 
     function totalSupply() external view override returns (uint256) {
