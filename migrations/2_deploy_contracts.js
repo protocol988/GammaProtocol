@@ -10,6 +10,7 @@ const MarginPool = artifacts.require('MarginPool')
 const MarginCalculator = artifacts.require('MarginCalculator')
 const AddressBook = artifacts.require('AddressBook')
 const Controller = artifacts.require('Controller')
+const MockERC20 = artifacts.require('MockERC20.sol')
 
 module.exports = async function (deployer, network, accounts) {
   const [deployerAddress] = accounts
@@ -62,4 +63,10 @@ module.exports = async function (deployer, network, accounts) {
   await deployer.deploy(Controller, { from: deployerAddress })
   const controller = await Controller.deployed()
   await addressbook.setController(controller.address, { from: deployerAddress })
+
+  const usdcDecimals = 6
+  const wethDecimals = 18
+  await deployer.deploy(MockERC20, 'USDC', 'USDC', usdcDecimals, { from: deployerAddress })
+  await deployer.deploy(MockERC20, 'WETH', 'WETH', wethDecimals, { from: deployerAddress })
+
 }
