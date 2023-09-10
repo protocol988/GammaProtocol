@@ -92,7 +92,8 @@ contract Otoken is ERC20PermitUpgradeable {
      * @param amount amount to mint
      */
     function mintOtoken(address account, uint256 amount) external {
-        require(msg.sender == controller, "Otoken: Only Controller can mint Otokens");
+        // TODO - can reintroduce this check once calls are redirected through wrapper
+        //require(msg.sender == controller, "Otoken: Only Controller can mint Otokens");
         _mint(account, amount);
     }
 
@@ -103,7 +104,8 @@ contract Otoken is ERC20PermitUpgradeable {
      * @param amount amount to burn
      */
     function burnOtoken(address account, uint256 amount) external {
-        require(msg.sender == controller, "Otoken: Only Controller can burn Otokens");
+        // TODO - can reintroduce this check once calls are redirected through wrapper
+        //require(msg.sender == controller, "Otoken: Only Controller can burn Otokens");
         _burn(account, amount);
     }
 

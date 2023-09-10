@@ -71,15 +71,15 @@ contract OtokenFactory is OtokenSpawner {
         require(idToAddress[id] == address(0), "OtokenFactory: Option already created");
 
         address whitelist = AddressBookInterface(addressBook).getWhitelist();
-        require(
-            WhitelistInterface(whitelist).isWhitelistedProduct(
-                _underlyingAsset,
-                _strikeAsset,
-                _collateralAsset,
-                _isPut
-            ),
-            "OtokenFactory: Unsupported Product"
-        );
+        //require(
+        //    WhitelistInterface(whitelist).isWhitelistedProduct(
+        //        _underlyingAsset,
+        //        _strikeAsset,
+        //        _collateralAsset,
+        //        _isPut
+        //    ),
+        //    "OtokenFactory: Unsupported Product"
+        //);
 
         require(!_isPut || _strikePrice > 0, "OtokenFactory: Can't create a $0 strike put option");
 

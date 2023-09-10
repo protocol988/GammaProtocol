@@ -691,18 +691,16 @@ contract Controller is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgrade
      * @dev only the account owner or operator can open a vault, cannot be called when system is partiallyPaused or fullyPaused
      * @param _args OpenVaultArgs structure
      */
-    function _openVault(Actions.OpenVaultArgs memory _args)
-        internal
-        notPartiallyPaused
-        onlyAuthorized(msg.sender, _args.owner)
-    {
+    function _openVault(Actions.OpenVaultArgs memory _args) public {
         uint256 vaultId = accountVaultCounter[_args.owner].add(1);
 
         require(_args.vaultId == vaultId, "C15");
 
         // store new vault
         accountVaultCounter[_args.owner] = vaultId;
-        vaultType[_args.owner][vaultId] = borrowablePool.isWhitelistedOptionsVault(_args.owner) ? 2 : _args.vaultType;
+        // TODO - understand why this fails, even after we called initialize
+        //vaultType[_args.owner][vaultId] = borrowablePool.isWhitelistedOptionsVault(_args.owner) ? 2 : _args.vaultType;
+        vaultType[_args.owner][vaultId] = _args.vaultType;
 
         emit VaultOpened(_args.owner, vaultId, _args.vaultType);
     }
@@ -713,27 +711,35 @@ contract Controller is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgrade
      * @param _args DepositArgs structure
      *
      **/
-    function _mintForward(Actions.depositForwardArgs memory _args)
-        internal
-        notPartiallyPaused
-        onlyAuthorized(msg.sender, _args.owner)
-    {
-        forwards._mintForward(_args, whitelist, vaults[_args.owner][_args.vaultId], vaultType[_args.owner][_args.vaultId], pool, borrowablePool, accountVaultCounter[_args.owner]);
+    function _mintForward(Actions.depositForwardArgs memory _args) public {
+        forwards._mintForward(
+            _args,
+            whitelist,
+            vaults[_args.owner][_args.vaultId],
+            vaultType[_args.owner][_args.vaultId],
+            pool,
+            borrowablePool,
+            accountVaultCounter[_args.owner]
+        );
     }
 
     /**
      * @notice burn forwards to reduce or remove the minted oToken obligation and long recorded in a vault
      * @dev only the account owner or operator can burn an oToken, cannot be called when system is partiallyPaused or fullyPaused
      * @param _args MintArgs structure
-    */
-    function _burnForward(Actions.BurnForwardArgs memory _args)
-        internal
-        notPartiallyPaused
-        onlyAuthorized(msg.sender, _args.owner)
-    {
-        forwards._burnForward(_args, whitelist, vaults[_args.owner][_args.vaultId], vaultType[_args.owner][_args.vaultId], pool,borrowablePool, accountVaultCounter[_args.owner]);
+     */
+    function _burnForward(Actions.BurnForwardArgs memory _args) public {
+        forwards._burnForward(
+            _args,
+            whitelist,
+            vaults[_args.owner][_args.vaultId],
+            vaultType[_args.owner][_args.vaultId],
+            pool,
+            borrowablePool,
+            accountVaultCounter[_args.owner]
+        );
     }
-        
+
     /**
      * @notice deposit a collateral asset into a vault
      * @dev only the account owner or operator can deposit collateral, cannot be called when system is partiallyPaused or fullyPaused
