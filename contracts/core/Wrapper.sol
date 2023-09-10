@@ -19,6 +19,7 @@ import {IController} from "../interfaces/controllerProxy.sol";
 import {SafeMath} from "../packages/oz/SafeMath.sol";
 import {IERC20} from "../packages/oz/IERC20.sol";
 import {IFShare} from "../interfaces/FShareInterface.sol";
+import {OtokenFactory} from "./OtokenFactory.sol";
 
 /**
  * @title Wrapper
@@ -30,6 +31,7 @@ contract Wrapper is ReentrancyGuard {
 
     // Controller contract
     address public controller;
+    OtokenFactory public otokenFactory;
 
     mapping(address => address[]) public longFShareAddressesOwned;
     mapping(address => address[]) public ShortFShareAddressesOwned;
@@ -37,14 +39,13 @@ contract Wrapper is ReentrancyGuard {
     mapping(address => bool) public fShareExpired;
     mapping(address => uint256) public payout;
 
-    constructor(address controller_address) public {
+    constructor(address controller_address, address _otokenFactory) public {
         controller = controller_address;
+        otokenFactory = OtokenFactory(_otokenFactory);
     }
 
     function mintForwardQuick(
         address owner,
-        address oTokenLong,
-        address oTokenShort,
         address collateralAsset,
         uint256 collateralAmount,
         uint256 oTokenAmount
@@ -54,16 +55,39 @@ contract Wrapper is ReentrancyGuard {
 
         uint256 _amount = oTokenAmount;
 
-        // name the fShare's
-        // TODO - figure out otoken integration
+        // mint oTokens here...
+
         /*
-        string memory name_long = string(
-            abi.encodePacked(otoken.underlyingAsset(), "LONG-F", otoken.expiryTimestamp(), otoken.strikePrice())
-        );
-        string memory name_short = string(
-            abi.encodePacked(otoken.underlyingAsset(), "SHORT-F", otoken.expiryTimestamp(), otoken.strikePrice())
-        );
-        */
+        address oTokenPut = otokenFactory.createOtoken(
+        _underlyingAsset,
+        _strikeAsset,
+        _collateralAsset,
+        _strikePrice,
+        _expiry,
+        true,
+    );
+        address oTokenCall = otokenFactory.createOtoken(
+        _underlyingAsset,
+        _strikeAsset,
+        _collateralAsset,
+        _strikePrice,
+        _expiry,
+        false,
+    );
+    */
+
+        // TODO - how do we know which one is long and short?
+
+        // name the fShare's
+        //string memory name_long = string(
+        //    abi.encodePacked(oTokenPut.underlyingAsset(), "LONG-F", oTokenPut.expiryTimestamp(), oTokenPut.strikePrice())
+        //);
+        //string memory name_short = string(
+        //    abi.encodePacked(oTokenCall.underlyingAsset(), "SHORT-F", oTokenCall.expiryTimestamp(), oTokenCall.strikePrice())
+        //);
+
+        //Actions.ActionArgs[] memory _actions =
+        //mintForward(Actions.ActionArgs[] memory _actions)
 
         string memory name_long = "LFTOKEN";
         string memory name_short = "SFTOKEN";
@@ -153,8 +177,8 @@ contract Wrapper is ReentrancyGuard {
         ShortFShareAddressesOwned[msg.sender].push(address(fShareShort));
 
         // transfer the fShares to the msg.sender
-        fShareLong.transfer(msg.sender, _actions[2].amount);
-        fShareShort.transfer(msg.sender, _actions[2].amount);
+        fShareLong.transfer(msg.sender, amount);
+        fShareShort.transfer(msg.sender, amount);
 
         // return the fShare addresses
         address[] memory fShareAddresses = new address[](2);
