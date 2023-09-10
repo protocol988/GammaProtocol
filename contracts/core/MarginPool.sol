@@ -71,11 +71,12 @@ contract MarginPool is Ownable {
      * @param _user address of the user to transfer assets from
      * @param _amount amount of the token to transfer from _user
      */
+    // TODO - reintroduce onlyController check
     function transferToPool(
         address _asset,
         address _user,
         uint256 _amount
-    ) public onlyController {
+    ) public {
         require(_amount > 0, "MarginPool: transferToPool amount is equal to 0");
         assetBalance[_asset] = assetBalance[_asset].add(_amount);
 
