@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.6.0;
 
 import {IERC20} from "../packages/oz/IERC20.sol";
 
@@ -8,10 +8,14 @@ contract FShare is IERC20 {
     string private _symbol;
     uint256 private _totalSupply;
 
-    mapping (address => uint256) private _balances;
-    mapping (address => mapping (address => uint256)) private _allowances;
+    mapping(address => uint256) private _balances;
+    mapping(address => mapping(address => uint256)) private _allowances;
 
-    constructor(string memory name, string memory symbol, uint256 initialSupply) {
+    constructor(
+        string memory name,
+        string memory symbol,
+        uint256 initialSupply
+    ) {
         _name = name;
         _symbol = symbol;
         _totalSupply = initialSupply;
@@ -42,11 +46,11 @@ contract FShare is IERC20 {
     function transfer(address recipient, uint256 amount) external override returns (bool) {
         require(recipient != address(0), "Transfer to the zero address");
         require(_balances[msg.sender] >= amount, "Insufficient balance");
-        
+
         _balances[msg.sender] -= amount;
         _balances[recipient] += amount;
         emit Transfer(msg.sender, recipient, amount);
-        
+
         return true;
     }
 
@@ -63,12 +67,16 @@ contract FShare is IERC20 {
         return true;
     }
 
-    function transferFrom(address sender, address recipient, uint256 amount) external override returns (bool) {
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) external override returns (bool) {
         require(sender != address(0), "Transfer from the zero address");
         require(recipient != address(0), "Transfer to the zero address");
         require(_balances[sender] >= amount, "Insufficient balance");
         require(_allowances[sender][msg.sender] >= amount, "Transfer amount exceeds allowance");
-        
+
         _balances[sender] -= amount;
         _balances[recipient] += amount;
         _allowances[sender][msg.sender] -= amount;
