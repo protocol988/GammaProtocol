@@ -14,4 +14,6 @@ interface IController {
     function operate(Actions.ActionArgs[] memory _actions) external;
 
     function getPayout(address _otoken, uint256 _amount) external view returns (uint256);
+
+    function getAccountVaultCounter(address _accountOwner) external view returns (uint256);
 }

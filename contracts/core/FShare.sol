@@ -15,7 +15,7 @@ contract FShare is IERC20, IFShare {
 
     bool public _isLong;
 
-    address _Otoken;
+    address public _Otoken;
 
     mapping(address => uint256) private _balances;
     mapping(address => mapping(address => uint256)) private _allowances;

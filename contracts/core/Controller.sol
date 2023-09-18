@@ -552,7 +552,7 @@ contract Controller is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgrade
      * @param _accountOwner account owner address
      * @return number of vaults
      */
-    function getAccountVaultCounter(address _accountOwner) external view returns (uint256) {
+    function getAccountVaultCounter(address _accountOwner) external view override returns (uint256) {
         return accountVaultCounter[_accountOwner];
     }
 

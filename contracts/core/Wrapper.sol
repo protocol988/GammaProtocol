@@ -6,7 +6,7 @@
  the controller directly is that we are frantionalizing ownership of the forward represented in
  the vault, and paying the minter in ERC-20 tokens.
 */
-pragma solidity =0.6.10;
+pragma solidity ^0.6.10; // necessary for string concatenation
 
 pragma experimental ABIEncoderV2;
 
@@ -46,56 +46,101 @@ contract Wrapper is ReentrancyGuard {
 
     function mintForwardQuick(
         address owner,
-        address collateralAsset,
-        uint256 collateralAmount,
-        uint256 oTokenAmount
+        address _underlyingAsset,
+        address _strikeAsset,
+        uint256 _strikePrice,
+        address _collateralAsset,
+        uint256 _collateralAmount,
+        uint256 _expiry,
+        uint256 _oTokenAmount
     ) public nonReentrant returns (address[] memory) {
         /////////////////////////////////
         //OtokenInterface otoken = OtokenInterface(oTokenShort);
 
-        uint256 _amount = oTokenAmount;
+        uint256 _amount = _oTokenAmount;
 
         // mint oTokens here...
 
-        /*
         address oTokenPut = otokenFactory.createOtoken(
-        _underlyingAsset,
-        _strikeAsset,
-        _collateralAsset,
-        _strikePrice,
-        _expiry,
-        true,
-    );
-        address oTokenCall = otokenFactory.createOtoken(
-        _underlyingAsset,
-        _strikeAsset,
-        _collateralAsset,
-        _strikePrice,
-        _expiry,
-        false,
-    );
-    */
+            _underlyingAsset,
+            _strikeAsset,
+            _collateralAsset,
+            _strikePrice,
+            _expiry,
+            true
+        );
 
-        // TODO - how do we know which one is long and short?
+        address oTokenCall = otokenFactory.createOtoken(
+            _underlyingAsset,
+            _strikeAsset,
+            _collateralAsset,
+            _strikePrice,
+            _expiry,
+            false
+        );
+
+        // get number of vaults in the Controller
+        uint256 vaultCounter = IController(controller).getAccountVaultCounter(owner);
+
+        // create actions for controller
+        // First action, open a vault.
+        Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](3);
+        actions[0] = Actions.ActionArgs(
+            Actions.ActionType.OpenVault,
+            owner, // owner
+            address(this), // receiver
+            oTokenCall, // call (will be long otoken for forwards.)
+            oTokenPut, // put (will be short otoken for forwards.)
+            vaultCounter + 1, // vaultId
+            _amount, // amount
+            0, // index // can leave at 0
+            "" // data // empty string
+        );
+        // Second action, deposit collateral.
+        actions[1] = Actions.ActionArgs(
+            Actions.ActionType.DepositCollateral,
+            owner, // owner
+            address(this), // receiver
+            _collateralAsset, // asset, parse args will assign this to the collateralAsset.
+            _collateralAsset, // doesn't matter will be ignored...
+            vaultCounter + 1, // vaultId
+            _collateralAmount, // amount
+            0, // index // can leave at 0
+            "" // data // empty string
+        );
+        // Third action, mint Forward (MintForward)
+        actions[2] = Actions.ActionArgs(
+            Actions.ActionType.MintForward,
+            owner, // owner
+            address(this), // receiver
+            oTokenCall, // long
+            oTokenPut, // otoken
+            vaultCounter + 1, // vaultId
+            _amount, // amount
+            0, // index // can leave at 0
+            "" // data // empty string
+        );
+
+        // run actions
+        IController(controller).operate(actions);
+
+        // GENERATE THE FSHARES
+        // NOTE, The call is always long, the put is always short
+
+        OtokenInterface IoTokenCall = OtokenInterface(oTokenCall);
+        OtokenInterface IoTokenPut = OtokenInterface(oTokenPut);
 
         // name the fShare's
-        //string memory name_long = string(
-        //    abi.encodePacked(oTokenPut.underlyingAsset(), "LONG-F", oTokenPut.expiryTimestamp(), oTokenPut.strikePrice())
-        //);
-        //string memory name_short = string(
-        //    abi.encodePacked(oTokenCall.underlyingAsset(), "SHORT-F", oTokenCall.expiryTimestamp(), oTokenCall.strikePrice())
-        //);
+        // TODO convert expiry and strike to strs
+        // TODO get short name of Otoken, or add method to OToken contract for this...
+        string memory name_long = append("_", "LFTOKEN", "_", "_"); //, IoTokenCall.expiryTimestamp(), IoTokenCall.strikePrice());
+        // IoTokenPut.underlyingAsset()
+        string memory name_short = append("_", "SFTOKEN", "_", "_"); //, IoTokenPut.expiryTimestamp(), IoTokenPut.strikePrice());
 
-        //Actions.ActionArgs[] memory _actions =
-        //mintForward(Actions.ActionArgs[] memory _actions)
-
-        string memory name_long = "LFTOKEN";
-        string memory name_short = "SFTOKEN";
-
-        // initial supply is the amount minted * 1000
+        // initial supply is the amount minted * 1000 // TODO optimize this quantity based on asset
         uint256 amount = _amount * 1000;
-        FShare fShareLong = new FShare(name_long, name_long, amount, true, collateralAsset);
-        FShare fShareShort = new FShare(name_short, name_short, amount, false, collateralAsset);
+        FShare fShareLong = new FShare(name_long, name_long, amount, true, _collateralAsset);
+        FShare fShareShort = new FShare(name_short, name_short, amount, false, _collateralAsset);
 
         // make the wrapper contract an approved spender of the all the fShares
         fShareLong.approve(address(this), amount);
@@ -317,5 +362,14 @@ contract Wrapper is ReentrancyGuard {
     // payable fallback function
     receive() external payable {
         emit Received(msg.sender, msg.value);
+    }
+
+    function append(
+        string memory a,
+        string memory b,
+        string memory c,
+        string memory d
+    ) internal pure returns (string memory) {
+        return string(abi.encodePacked(a, b, c, d));
     }
 }
